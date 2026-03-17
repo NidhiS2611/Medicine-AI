@@ -4,15 +4,18 @@ import joblib
 import pandas as pd
 import os
 import gdown
+import threading
 
 app = Flask(__name__)
+
+# CORS (frontend allow)
 CORS(app, resources={
     r"/*": {
         "origins": "https://medicine-ai-six.vercel.app"
     }
 })
 
-# Google Drive details
+# Google Drive model details
 FILE_ID = "1wV5ifFRdzP5VFKO0730u2wWG1yhLWkQi"
 MODEL_URL = f"https://drive.google.com/uc?id={FILE_ID}"
 MODEL_PATH = "demand_model.pkl"
@@ -20,13 +23,15 @@ MODEL_PATH = "demand_model.pkl"
 # Global model variable
 model = None
 
+
+# 🔥 Load model (lazy)
 def get_model():
     global model
-    
-    if model is None:
-        print("📥 Loading model (lazy)...")
 
-        # Download if not exists
+    if model is None:
+        print("📥 Loading model...")
+
+        # Download only if not present
         if not os.path.exists(MODEL_PATH):
             print("📥 Downloading model from Google Drive...")
             gdown.download(MODEL_URL, MODEL_PATH, quiet=False, fuzzy=True)
@@ -38,17 +43,31 @@ def get_model():
     return model
 
 
+# 🚀 Background preload (SAFE)
+def preload_model():
+    try:
+        get_model()
+        print("🔥 Model preloaded successfully")
+    except Exception as e:
+        print("❌ Preload failed:", e)
+
+
+# Start preload in background
+threading.Thread(target=preload_model).start()
+
+
+# 🔮 Prediction API
 @app.route("/predict", methods=["POST"])
 def predict():
     try:
         data = request.json
-        
-        # Input validation
+
+        # Validate input
         required_fields = ["medicine", "month", "year", "stock", "expiry", "price"]
         for field in required_fields:
             if field not in data:
                 return jsonify({"error": f"Missing field: {field}"}), 400
-        
+
         medicine = data["medicine"]
         month = int(data["month"])
         year = int(data["year"])
@@ -56,6 +75,7 @@ def predict():
         expiry_days = int(data["expiry"])
         price = int(data["price"])
 
+        # Create dataframe
         sample = pd.DataFrame({
             "medicine": [medicine],
             "month": [month],
@@ -65,11 +85,14 @@ def predict():
             "unit_price": [price]
         })
 
-        # ✅ Use lazy loaded model
+        # Get model
         m = get_model()
+
+        # Predict
         prediction = m.predict(sample)[0]
         predicted_sales = int(prediction)
 
+        # Business logic
         if predicted_sales >= stock:
             risk = "SAFE"
         else:
@@ -90,11 +113,12 @@ def predict():
             "riskLevel": risk,
             "lossEstimate": loss
         })
-    
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 
+# ❤️ Health check
 @app.route("/health", methods=["GET"])
 def health():
     return jsonify({
@@ -103,6 +127,7 @@ def health():
     })
 
 
+# 🏠 Home route
 @app.route("/", methods=["GET"])
 def home():
     return jsonify({
@@ -114,6 +139,7 @@ def home():
     })
 
 
+# Run app
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
