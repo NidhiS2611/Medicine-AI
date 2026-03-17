@@ -4,44 +4,35 @@ import joblib
 import pandas as pd
 import os
 import gdown
-import sys
 
 app = Flask(__name__)
 CORS(app)
 
-# Google Drive se model download
+# Google Drive details
 FILE_ID = "1wV5ifFRdzP5VFKO0730u2wWG1yhLWkQi"
 MODEL_URL = f"https://drive.google.com/uc?id={FILE_ID}"
 MODEL_PATH = "demand_model.pkl"
 
-def download_model():
-    """Model download karo agar nahi hai to"""
-    if not os.path.exists(MODEL_PATH):
-        print("📥 Downloading model from Google Drive...")
-        try:
-            gdown.download(MODEL_URL, MODEL_PATH, quiet=False)
-            if os.path.exists(MODEL_PATH):
-                file_size = os.path.getsize(MODEL_PATH) / (1024 * 1024)  # MB mein
-                print(f"✅ Download complete! Size: {file_size:.2f} MB")
-            else:
-                print("❌ Download failed: File not found")
-                sys.exit(1)
-        except Exception as e:
-            print(f"❌ Download error: {str(e)}")
-            sys.exit(1)
-    else:
-        file_size = os.path.getsize(MODEL_PATH) / (1024 * 1024)
-        print(f"✅ Model already exists. Size: {file_size:.2f} MB")
+# Global model variable
+model = None
 
-# Download and load model
-download_model()
-print("🔄 Loading model...")
-try:
-    model = joblib.load(MODEL_PATH)
-    print("✅ Model loaded successfully!")
-except Exception as e:
-    print(f"❌ Failed to load model: {str(e)}")
-    sys.exit(1)
+def get_model():
+    global model
+    
+    if model is None:
+        print("📥 Loading model (lazy)...")
+
+        # Download if not exists
+        if not os.path.exists(MODEL_PATH):
+            print("📥 Downloading model from Google Drive...")
+            gdown.download(MODEL_URL, MODEL_PATH, quiet=False, fuzzy=True)
+
+        # Load model
+        model = joblib.load(MODEL_PATH)
+        print("✅ Model loaded!")
+
+    return model
+
 
 @app.route("/predict", methods=["POST"])
 def predict():
@@ -70,7 +61,9 @@ def predict():
             "unit_price": [price]
         })
 
-        prediction = model.predict(sample)[0]
+        # ✅ Use lazy loaded model
+        m = get_model()
+        prediction = m.predict(sample)[0]
         predicted_sales = int(prediction)
 
         if predicted_sales >= stock:
@@ -97,12 +90,14 @@ def predict():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+
 @app.route("/health", methods=["GET"])
 def health():
     return jsonify({
         "status": "healthy",
-        "model_loaded": True
+        "model_loaded": model is not None
     })
+
 
 @app.route("/", methods=["GET"])
 def home():
@@ -114,6 +109,7 @@ def home():
         }
     })
 
+
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=False)
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
