@@ -10,26 +10,31 @@ const [expiry,setExpiry] = useState("");
 const [price,setPrice] = useState("");
 
 const handleSubmit = async (e) => {
-e.preventDefault();
+  e.preventDefault();
 
-const response = await fetch("https://medicine-ai-ozai.onrender.com/predict",{
-method:"POST",
-headers:{
-"Content-Type":"application/json"
-},
-body:JSON.stringify({
-medicine,
-month,
-year,
-stock,
-expiry,
-price
-})
-});
+  try {
+    const response = await fetch("https://medicine-ai-ozai.onrender.com/predict", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        medicine,
+        month,
+        year,
+        stock,
+        expiry,
+        price
+      })
+    });
 
-const data = await response.json();
+    const data = await response.json();
+    console.log(data);
 
-onPredict(data);
+  } catch (error) {
+    console.error("🔥 ERROR:", error);
+    alert("Server slow hai ya down hai, thoda wait karke try karo");
+  }
 };
 
 return(
