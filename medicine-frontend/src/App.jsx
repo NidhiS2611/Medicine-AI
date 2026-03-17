@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState,useEffect } from "react";
 import Header from "./component/Header";
 import PredictionForm from "./component/PredictionForm";
 import PredictionResult from "./component/PredictionResult";
