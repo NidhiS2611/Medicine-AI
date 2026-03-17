@@ -7,6 +7,12 @@ import "./App.css";
 export default function App() {
 
   const [result, setResult] = useState(null);
+    useEffect(() => {
+    fetch("https://medicine-ai-ozai.onrender.com/health")
+      .then(res => res.json())
+      .then(data => console.log("🔥 Server warmup:", data))
+      .catch(err => console.log("❌ Warmup error:", err));
+  }, []);
 
   // Flask se jo response aayega wahi store karenge
   const handlePredict = (data) => {
