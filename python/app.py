@@ -6,7 +6,11 @@ import os
 import gdown
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={
+    r"/*": {
+        "origins": "https://medicine-ai-six.vercel.app"
+    }
+})
 
 # Google Drive details
 FILE_ID = "1wV5ifFRdzP5VFKO0730u2wWG1yhLWkQi"
