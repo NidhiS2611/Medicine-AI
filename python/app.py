@@ -23,37 +23,29 @@ MODEL_PATH = "demand_model.pkl"
 # Global model variable
 model = None
 
+# 🔒 ADD LOCK (IMPORTANT)
+model_lock = threading.Lock()
 
-# 🔥 Load model (lazy)
+
+# 🔥 Load model (lazy + thread-safe)
 def get_model():
     global model
 
     if model is None:
-        print("📥 Loading model...")
+        with model_lock:   # 🔒 prevent multiple downloads
+            if model is None:
+                print("📥 Loading model...")
 
-        # Download only if not present
-        if not os.path.exists(MODEL_PATH):
-            print("📥 Downloading model from Google Drive...")
-            gdown.download(MODEL_URL, MODEL_PATH, quiet=False, fuzzy=True)
+                # Download only if not present
+                if not os.path.exists(MODEL_PATH):
+                    print("📥 Downloading model from Google Drive...")
+                    gdown.download(MODEL_URL, MODEL_PATH, quiet=False, fuzzy=True)
 
-        # Load model
-        model = joblib.load(MODEL_PATH)
-        print("✅ Model loaded!")
+                # Load model
+                model = joblib.load(MODEL_PATH)
+                print("✅ Model loaded!")
 
     return model
-
-
-# 🚀 Background preload (SAFE)
-def preload_model():
-    try:
-        get_model()
-        print("🔥 Model preloaded successfully")
-    except Exception as e:
-        print("❌ Preload failed:", e)
-
-
-# Start preload in background
-threading.Thread(target=preload_model).start()
 
 
 # 🔮 Prediction API
