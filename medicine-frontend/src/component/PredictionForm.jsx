@@ -13,7 +13,7 @@ const handleSubmit = async (e) => {
   e.preventDefault();
 
   try {
-    const response = await fetch("https://huggingface.co/spaces/Nidhi1126/AI_stock_prediction/predict", {
+    const response = await fetch("https://nidhi1126-ai-stock-prediction.hf.space/predict", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
