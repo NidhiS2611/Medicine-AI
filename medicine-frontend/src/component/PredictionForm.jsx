@@ -30,6 +30,7 @@ const handleSubmit = async (e) => {
 
     const data = await response.json();
     console.log(data);
+    onPredict(data);
 
   } catch (error) {
     console.error("🔥 ERROR:", error);
